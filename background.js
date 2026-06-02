@@ -104,23 +104,32 @@ async function trackUsage(action, details = {}) {
 // Función para inyección forzada en sitios problemáticos
 async function forceInjectCommandBar(tabId, action = 'toggle_commandbar', currentUrl = null) {
   try {
-    
+
     // Verificar que la pestaña sea accesible
     const tab = await chrome.tabs.get(tabId);
-    
+    const url = tab.url || '';
+
     // NUEVA LÓGICA: Permitir inyección en nuestras páginas de extensión
-    const isOurExtensionPage = tab.url?.includes(chrome.runtime.id) && tab.url?.includes('new_tab.html');
-    
+    const isOurExtensionPage = url?.includes(chrome.runtime.id) && url?.includes('new_tab.html');
+
     // Si es nuestra página, no necesita inyección - es auto-suficiente
     if (isOurExtensionPage) {
       return true; // Reportar éxito ya que la página se maneja sola
     }
-    
-    // No intentar inyectar en páginas internas de Chrome (EXCEPTO las nuestras)
-    if ((tab.url?.startsWith('chrome://') || 
-         tab.url?.startsWith('chrome-extension://') || 
-         tab.url?.startsWith('edge://') ||
-         tab.url?.startsWith('devtools://')) && !isOurExtensionPage) {
+
+    // Allowlist: sólo inyectar en páginas http(s) o file. Cualquier otro esquema
+    // (chrome://, chrome-extension://, edge://, devtools://, about:, view-source:,
+    // chrome-search://, chrome-untrusted://, o tab.url indefinido) es inaccesible.
+    const isInjectable = url.startsWith('http://') ||
+                         url.startsWith('https://') ||
+                         url.startsWith('file://');
+    if (!isInjectable) {
+      return false;
+    }
+
+    // Bloquear orígenes especiales donde Chrome rechaza la inyección aunque sean https
+    if (url.startsWith('https://chromewebstore.google.com/') ||
+        url.startsWith('https://chrome.google.com/webstore')) {
       return false;
     }
     
