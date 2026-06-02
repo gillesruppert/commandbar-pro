@@ -68,6 +68,7 @@ class I18n {
           searchInDuckDuckGo: 'Buscar "{query}" en DuckDuckGo',
           searchInYahoo: 'Buscar "{query}" en Yahoo',
           searchInPerplexity: 'Buscar "{query}" en Perplexity',
+          searchInCustom: 'Buscar "{query}" en {name}',
           goToUrl: 'Ir a {url}',
           openInNewTab: 'Abrir en nueva pestaña',
           noResults: 'No se encontraron comandos'
@@ -274,10 +275,18 @@ class I18n {
               google: 'Google',
               bing: 'Bing',
               duckduckgo: 'DuckDuckGo',
-              yahoo: 'Yahoo'
+              yahoo: 'Yahoo',
+              custom: 'Personalizado'
+            },
+
+            customEngine: {
+              label: 'Motor de Búsqueda Personalizado',
+              desc: 'Introduce un nombre y una plantilla de URL. Usa %s donde se debe insertar la consulta (ej. https://ejemplo.com/search?q=%s).',
+              namePlaceholder: 'Nombre (ej. Kagi)',
+              urlPlaceholder: 'https://ejemplo.com/search?q=%s'
             }
           },
-          
+
           // Atajos de teclado
           keyboard: {
             mainShortcuts: 'Atajos Principales',
@@ -494,6 +503,7 @@ class I18n {
           searchInDuckDuckGo: 'Search "{query}" in DuckDuckGo',
           searchInYahoo: 'Search "{query}" in Yahoo',
           searchInPerplexity: 'Search "{query}" in Perplexity',
+          searchInCustom: 'Search "{query}" in {name}',
           goToUrl: 'Go to {url}',
           openInNewTab: 'Open in new tab',
           noResults: 'No commands found'
@@ -700,10 +710,18 @@ class I18n {
               google: 'Google',
               bing: 'Bing',
               duckduckgo: 'DuckDuckGo',
-              yahoo: 'Yahoo'
+              yahoo: 'Yahoo',
+              custom: 'Custom'
+            },
+
+            customEngine: {
+              label: 'Custom Search Engine',
+              desc: 'Enter a name and a URL template. Use %s where the query should be inserted (e.g. https://example.com/search?q=%s).',
+              namePlaceholder: 'Name (e.g. Kagi)',
+              urlPlaceholder: 'https://example.com/search?q=%s'
             }
           },
-          
+
           // Keyboard shortcuts
           keyboard: {
             mainShortcuts: 'Main Shortcuts',

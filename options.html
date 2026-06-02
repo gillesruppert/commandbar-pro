@@ -144,7 +144,19 @@
                 <option value="bing" id="engine-bing">Bing</option>
                 <option value="duckduckgo" id="engine-duckduckgo">DuckDuckGo</option>
                 <option value="yahoo" id="engine-yahoo">Yahoo</option>
+                <option value="custom" id="engine-custom">Custom</option>
               </select>
+            </div>
+
+            <div class="option-item" id="custom-search-engine-section" style="display: none;">
+              <div class="option-info">
+                <label class="option-label" id="custom-search-engine-label">Custom Search Engine</label>
+                <p class="option-description" id="custom-search-engine-desc">Enter a name and a URL template. Use %s where the query should be inserted (e.g. https://example.com/search?q=%s).</p>
+              </div>
+              <div class="custom-engine-inputs">
+                <input type="text" id="custom-search-engine-name" class="option-input" placeholder="Name (e.g. Kagi)">
+                <input type="text" id="custom-search-engine-url" class="option-input" placeholder="https://example.com/search?q=%s">
+              </div>
             </div>
           </div>
         </section>

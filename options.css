@@ -257,6 +257,17 @@ body {
   margin-right: 0.5rem;
 }
 
+.custom-engine-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 280px;
+}
+
+.custom-engine-inputs .option-input {
+  min-width: 280px;
+}
+
 .range-value {
   font-size: 0.9rem;
   color: #667eea;

@@ -112,6 +112,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     searchHistory: true,
     searchDelay: 50,
     defaultSearchEngine: 'google',
+    customSearchEngineName: '',
+    customSearchEngineUrl: '',
     preventSiteShortcuts: true,
     storeUsageStats: false,
     language: 'es',
@@ -237,6 +239,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     document.getElementById('animation-speed').value = currentSettings.animationSpeed;
     document.getElementById('default-search-engine').value = currentSettings.defaultSearchEngine;
     document.getElementById('language-select').value = currentSettings.language;
+
+    // Custom search engine inputs
+    const customNameInput = document.getElementById('custom-search-engine-name');
+    const customUrlInput = document.getElementById('custom-search-engine-url');
+    if (customNameInput) customNameInput.value = currentSettings.customSearchEngineName || '';
+    if (customUrlInput) customUrlInput.value = currentSettings.customSearchEngineUrl || '';
+    toggleCustomSearchEngineSection(currentSettings.defaultSearchEngine);
     
     // Inputs
     document.getElementById('max-results').value = currentSettings.maxResults;
@@ -354,6 +363,8 @@ document.addEventListener('DOMContentLoaded', async function() {
           } else if (id === 'language-select') {
             await handleLanguageChange(this.value);
             return; // handleLanguageChange ya guarda la configuración
+          } else if (id === 'default-search-engine') {
+            toggleCustomSearchEngineSection(this.value);
           }
           
           // Guardar automáticamente otros cambios (sin notificación)
@@ -373,6 +384,22 @@ document.addEventListener('DOMContentLoaded', async function() {
       currentSettings.searchDelay = parseInt(this.value);
       await saveSettings(false);
     });
+
+    // Custom search engine inputs
+    const customNameInput = document.getElementById('custom-search-engine-name');
+    if (customNameInput) {
+      customNameInput.addEventListener('input', async function() {
+        currentSettings.customSearchEngineName = this.value.trim();
+        await saveSettings(false);
+      });
+    }
+    const customUrlInput = document.getElementById('custom-search-engine-url');
+    if (customUrlInput) {
+      customUrlInput.addEventListener('input', async function() {
+        currentSettings.customSearchEngineUrl = this.value.trim();
+        await saveSettings(false);
+      });
+    }
     
     // Range input experimental
     const autoOpenDelayInput = document.getElementById('auto-open-delay');
@@ -419,6 +446,14 @@ document.addEventListener('DOMContentLoaded', async function() {
     return mappings[elementId];
   }
   
+  // Mostrar/ocultar inputs de motor personalizado
+  function toggleCustomSearchEngineSection(engineValue) {
+    const section = document.getElementById('custom-search-engine-section');
+    if (section) {
+      section.style.display = engineValue === 'custom' ? '' : 'none';
+    }
+  }
+
   // Aplicar cambio de tema
   function applyThemeChange(theme) {
     // Aplicar inmediatamente para vista previa
@@ -568,6 +603,17 @@ document.addEventListener('DOMContentLoaded', async function() {
     document.getElementById('engine-bing').textContent = i18nInstance.t('options.searchSettings.engines.bing');
     document.getElementById('engine-duckduckgo').textContent = i18nInstance.t('options.searchSettings.engines.duckduckgo');
     document.getElementById('engine-yahoo').textContent = i18nInstance.t('options.searchSettings.engines.yahoo');
+    document.getElementById('engine-custom').textContent = i18nInstance.t('options.searchSettings.engines.custom');
+
+    // Motor de búsqueda personalizado
+    const customLabel = document.getElementById('custom-search-engine-label');
+    const customDesc = document.getElementById('custom-search-engine-desc');
+    const customNameInput = document.getElementById('custom-search-engine-name');
+    const customUrlInput = document.getElementById('custom-search-engine-url');
+    if (customLabel) customLabel.textContent = i18nInstance.t('options.searchSettings.customEngine.label');
+    if (customDesc) customDesc.textContent = i18nInstance.t('options.searchSettings.customEngine.desc');
+    if (customNameInput) customNameInput.placeholder = i18nInstance.t('options.searchSettings.customEngine.namePlaceholder');
+    if (customUrlInput) customUrlInput.placeholder = i18nInstance.t('options.searchSettings.customEngine.urlPlaceholder');
     
     // Atajos de Teclado
     updateElementText('keyboard-shortcuts-title', 'options.keyboardShortcuts', {}, i18nInstance);
@@ -693,6 +739,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             settings: {
               language: currentSettings.language,
               defaultSearchEngine: currentSettings.defaultSearchEngine,
+              customSearchEngineName: currentSettings.customSearchEngineName,
+              customSearchEngineUrl: currentSettings.customSearchEngineUrl,
               searchTabs: currentSettings.searchTabs,
               searchBookmarks: currentSettings.searchBookmarks,
               searchHistory: currentSettings.searchHistory,

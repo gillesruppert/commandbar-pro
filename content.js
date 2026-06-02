@@ -30,6 +30,8 @@ async function trackUsageLocal(action, details = {}) {
 // Configuración de usuario (ya declarada arriba)
 userSettings = {
   defaultSearchEngine: 'google',
+  customSearchEngineName: '',
+  customSearchEngineUrl: '',
   searchTabs: true,
   searchBookmarks: true,
   searchHistory: true,
@@ -40,8 +42,10 @@ userSettings = {
 // Función para cargar configuración
 async function loadUserSettings() {
   try {
-    const settings = await chrome.storage.sync.get(['defaultSearchEngine', 'searchTabs', 'searchBookmarks', 'searchHistory', 'maxResults', 'searchDelay', 'language']);
+    const settings = await chrome.storage.sync.get(['defaultSearchEngine', 'customSearchEngineName', 'customSearchEngineUrl', 'searchTabs', 'searchBookmarks', 'searchHistory', 'maxResults', 'searchDelay', 'language']);
     userSettings.defaultSearchEngine = settings.defaultSearchEngine || 'google';
+    userSettings.customSearchEngineName = settings.customSearchEngineName || '';
+    userSettings.customSearchEngineUrl = settings.customSearchEngineUrl || '';
     userSettings.searchTabs = settings.searchTabs !== false; // Por defecto true
     userSettings.searchBookmarks = settings.searchBookmarks !== false; // Por defecto true
     userSettings.searchHistory = settings.searchHistory !== false; // Por defecto true
@@ -56,6 +60,8 @@ async function loadUserSettings() {
   } catch (error) {
     // Error silencioso para páginas donde chrome.storage no está disponible
     userSettings.defaultSearchEngine = 'google';
+    userSettings.customSearchEngineName = '';
+    userSettings.customSearchEngineUrl = '';
     userSettings.searchTabs = true;
     userSettings.searchBookmarks = true;
     userSettings.searchHistory = true;
@@ -65,11 +71,28 @@ async function loadUserSettings() {
   }
 }
 
+// Construir URL desde plantilla personalizada (acepta %s o {query})
+function buildCustomSearchUrl(query) {
+  const template = (userSettings.customSearchEngineUrl || '').trim();
+  if (!template) return null;
+  const encodedQuery = encodeURIComponent(query);
+  if (template.includes('%s')) return template.replace(/%s/g, encodedQuery);
+  if (template.includes('{query}')) return template.replace(/\{query\}/g, encodedQuery);
+  // Plantilla sin marcador: anexar como query param
+  const sep = template.includes('?') ? '&' : '?';
+  return `${template}${sep}q=${encodedQuery}`;
+}
+
+// ¿Está el motor personalizado configurado y listo para usar?
+function isCustomSearchEngineConfigured() {
+  return Boolean((userSettings.customSearchEngineUrl || '').trim());
+}
+
 // Función para generar URL de búsqueda según el motor configurado
 function getSearchUrl(query, engine = null) {
   const searchEngine = engine || userSettings.defaultSearchEngine;
   const encodedQuery = encodeURIComponent(query);
-  
+
   switch (searchEngine) {
     case 'bing':
       return `https://www.bing.com/search?q=${encodedQuery}`;
@@ -79,6 +102,12 @@ function getSearchUrl(query, engine = null) {
       return `https://search.yahoo.com/search?p=${encodedQuery}`;
     case 'perplexity':
       return `https://www.perplexity.ai/?q=${encodedQuery}`;
+    case 'custom': {
+      const customUrl = buildCustomSearchUrl(query);
+      if (customUrl) return customUrl;
+      // Fallback a Google si la plantilla no está configurada
+      return `https://www.google.com/search?q=${encodedQuery}`;
+    }
     case 'google':
     default:
       return `https://www.google.com/search?q=${encodedQuery}`;
@@ -731,6 +760,14 @@ async function showSearchSuggestions(query) {
           { key: 'yahoo', name: i18n.t('search.searchInYahoo', { query }) },
           { key: 'perplexity', name: i18n.t('search.searchInPerplexity', { query }) }
         ];
+
+        if (isCustomSearchEngineConfigured()) {
+          const customName = userSettings.customSearchEngineName || i18n.t('options.searchSettings.engines.custom');
+          engines.push({
+            key: 'custom',
+            name: i18n.t('search.searchInCustom', { query, name: customName })
+          });
+        }
         
         // Crear sección de búsqueda web
         const webSection = document.createElement('div');
@@ -1129,6 +1166,21 @@ async function executeAction(item) {
         });
       }
       break;
+
+    case 'custom-search': {
+      const customUrl = buildCustomSearchUrl(item.dataset.query);
+      if (!customUrl) break;
+      if (isOurExtensionPage()) {
+        window.location.href = customUrl;
+      } else {
+        await chrome.runtime.sendMessage({
+          action: 'create_tab',
+          url: customUrl,
+          fromCommandBar: true
+        });
+      }
+      break;
+    }
       
     case 'show-bookmarks':
       if (isOurExtensionPage()) {
@@ -1566,6 +1618,12 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     if (message.settings) {
       if (message.settings.defaultSearchEngine !== undefined) {
         userSettings.defaultSearchEngine = message.settings.defaultSearchEngine;
+      }
+      if (message.settings.customSearchEngineName !== undefined) {
+        userSettings.customSearchEngineName = message.settings.customSearchEngineName;
+      }
+      if (message.settings.customSearchEngineUrl !== undefined) {
+        userSettings.customSearchEngineUrl = message.settings.customSearchEngineUrl;
       }
       if (message.settings.searchTabs !== undefined) {
         userSettings.searchTabs = message.settings.searchTabs;
