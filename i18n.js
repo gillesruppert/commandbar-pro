@@ -524,7 +524,9 @@ class I18n {
           success: 'Éxito',
           error: 'Error',
           warning: 'Advertencia',
-          info: 'Información'
+          info: 'Información',
+          urlCopied: 'URL copiada al portapapeles',
+          urlCopyError: 'No se pudo copiar la URL'
         }
       },
       
@@ -1049,7 +1051,9 @@ class I18n {
           success: 'Success',
           error: 'Error',
           warning: 'Warning',
-          info: 'Information'
+          info: 'Information',
+          urlCopied: 'URL copied to clipboard',
+          urlCopyError: 'Could not copy the URL'
         }
       }
     };

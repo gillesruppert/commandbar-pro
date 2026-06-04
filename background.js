@@ -416,6 +416,41 @@ chrome.commands.onCommand.addListener(async (command) => {
         }
       }
     });
+  } else if (command === 'copy_current_url') {
+    // Copiar la URL completa de la pestaña activa al portapapeles
+    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+      if (!tabs[0]) return;
+      const tabId = tabs[0].id;
+      const url = tabs[0].url || '';
+
+      // Primer intento: el content script copia y muestra un toast
+      try {
+        await chrome.tabs.sendMessage(tabId, { action: 'copy_current_url', url });
+      } catch (error) {
+        // Segundo intento: inyectar una función de copia directamente en la página
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId },
+            func: (text) => {
+              const ta = document.createElement('textarea');
+              ta.value = text;
+              ta.style.position = 'fixed';
+              ta.style.top = '-9999px';
+              ta.style.opacity = '0';
+              document.body.appendChild(ta);
+              ta.focus();
+              ta.select();
+              try { document.execCommand('copy'); } catch (e) {}
+              document.body.removeChild(ta);
+            },
+            args: [url]
+          });
+        } catch (e) {
+          // No se pudo copiar (p. ej. en páginas chrome:// donde no se puede inyectar)
+          console.warn('No se pudo copiar la URL:', e.message);
+        }
+      }
+    });
   }
 });
 

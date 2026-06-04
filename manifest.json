@@ -10,7 +10,8 @@
     "storage",
     "activeTab",
     "scripting",
-    "favicon"
+    "favicon",
+    "clipboardWrite"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -39,6 +40,13 @@
         "mac": "Command+Shift+K"
       },
       "description": "Edit Current URL"
+    },
+    "copy_current_url": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+C",
+        "mac": "Command+Shift+C"
+      },
+      "description": "Copy Current URL"
     }
   },
   "icons": {

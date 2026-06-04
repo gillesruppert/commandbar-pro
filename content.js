@@ -893,6 +893,59 @@ function appendTabResults(tabs) {
   suggestions.innerHTML += html;
 }
 
+// Copiar texto al portapapeles de forma robusta.
+// Método principal: textarea temporal + document.execCommand('copy'). Junto con el
+// permiso "clipboardWrite" del manifest, esto copia de forma silenciosa en todos los
+// sitios. NO usamos la Async Clipboard API como método principal porque, al ejecutarse
+// el content script en el origen de la página, Chrome muestra un aviso de permiso
+// atribuido al sitio ("XYZ.com quiere ver el texto copiado...").
+async function copyTextToClipboard(text) {
+  try {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.top = '-9999px';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(textarea);
+    if (ok) return true;
+  } catch (e) {
+    // Continuar con el respaldo
+  }
+
+  // Respaldo: Async Clipboard API (puede mostrar un aviso de permiso al usuario)
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (e) {
+    // Nada más que intentar
+  }
+
+  return false;
+}
+
+// Listener dedicado para copiar la URL actual (síncrono: devuelve true para
+// mantener abierto el canal y responder de forma asíncrona, evitando que el
+// service worker active su copia de respaldo).
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'copy_current_url') {
+    const url = message.url || window.location.href;
+    copyTextToClipboard(url).then((copied) => {
+      showToast(
+        copied ? i18n.t('notifications.urlCopied') : i18n.t('notifications.urlCopyError'),
+        copied ? 'success' : 'error'
+      );
+      sendResponse({ success: copied });
+    });
+    return true; // mantener el canal abierto para la respuesta asíncrona
+  }
+});
+
 // Construir URL de favicon usando la API nativa _favicon de Chrome.
 // Es totalmente local (lee de la base de datos de favicons del navegador),
 // no hace peticiones externas y el navegador la resuelve de forma asíncrona.
