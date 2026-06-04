@@ -621,12 +621,34 @@ async function searchBookmarks(query, sendResponse) {
   }
 }
 
+// Calcular el startTime para las consultas de historial según la configuración del usuario.
+// `historyLookbackDays` controla cuántos días hacia atrás se buscan.
+//   0 (o sin definir) => todo el historial (startTime: 0).
+//   N > 0            => últimos N días.
+// IMPORTANTE: chrome.history.search() usa por defecto startTime = hace 24h cuando se omite,
+// por lo que SIEMPRE debemos pasar un startTime explícito para buscar más atrás.
+async function getHistoryStartTime() {
+  try {
+    const { historyLookbackDays } = await chrome.storage.sync.get(['historyLookbackDays']);
+    const days = parseInt(historyLookbackDays, 10);
+    if (!Number.isFinite(days) || days <= 0) {
+      return 0; // Todo el historial
+    }
+    return Date.now() - days * 24 * 60 * 60 * 1000;
+  } catch (error) {
+    // Ante cualquier error de lectura, no limitar la búsqueda.
+    return 0;
+  }
+}
+
 // Buscar en historial
 async function searchHistory(query, sendResponse) {
   try {
+    const startTime = await getHistoryStartTime();
     const history = await chrome.history.search({
       text: query,
-      maxResults: 20
+      startTime, // 0 = todo el historial; configurable vía historyLookbackDays
+      maxResults: 200
     });
     sendResponse({ success: true, history });
   } catch (error) {
@@ -1119,8 +1141,10 @@ async function loadUltraCache(forceRebuild = false, progressCallback = null) {
     
     // Cargar TODO el historial disponible
     if (progressCallback) progressCallback('📚 Consultando historial completo de Chrome...');
+    const startTime = await getHistoryStartTime();
     const history = await chrome.history.search({
       text: '', // Buscar todo
+      startTime, // 0 = todo el historial; configurable vía historyLookbackDays. Sin esto Chrome limita a 24h.
       maxResults: ULTRA_CACHE.config.maxHistoryResults // 100,000 URLs
     });
     

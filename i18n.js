@@ -262,6 +262,8 @@ class I18n {
             searchDelay: 'Retraso de Búsqueda (ms)',
             searchDelayDesc: 'Tiempo de espera antes de ejecutar búsqueda',
             searchDelayRecommended: 'Recomendado',
+            historyLookback: 'Historial: días hacia atrás',
+            historyLookbackDesc: 'Cuántos días de historial buscar. 0 = todo el historial',
             defaultSearchEngine: 'Buscador por Defecto',
             defaultSearchEngineDesc: 'Motor de búsqueda para consultas web',
             
@@ -697,6 +699,8 @@ class I18n {
             searchDelay: 'Search Delay (ms)',
             searchDelayDesc: 'Wait time before executing search',
             searchDelayRecommended: 'Recommended',
+            historyLookback: 'History: days to look back',
+            historyLookbackDesc: 'How many days of history to search. 0 = all history',
             defaultSearchEngine: 'Default Search Engine',
             defaultSearchEngineDesc: 'Search engine for web queries',
             

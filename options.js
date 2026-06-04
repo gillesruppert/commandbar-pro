@@ -110,6 +110,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     searchTabs: true,
     searchBookmarks: true,
     searchHistory: true,
+    historyLookbackDays: 0,
     searchDelay: 50,
     defaultSearchEngine: 'google',
     customSearchEngineName: '',
@@ -250,6 +251,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Inputs
     document.getElementById('max-results').value = currentSettings.maxResults;
     document.getElementById('search-delay').value = currentSettings.searchDelay;
+
+    // History lookback (0 = todo el historial)
+    const historyLookbackInput = document.getElementById('history-lookback-days');
+    if (historyLookbackInput) {
+      historyLookbackInput.value = currentSettings.historyLookbackDays;
+    }
     
     // Actualizar valor del search-delay con indicador "Recomendado"
     const isRecommended = currentSettings.searchDelay === 50;
@@ -378,6 +385,15 @@ document.addEventListener('DOMContentLoaded', async function() {
       currentSettings.maxResults = parseInt(this.value);
       await saveSettings(false);
     });
+
+    const historyLookbackInput = document.getElementById('history-lookback-days');
+    if (historyLookbackInput) {
+      historyLookbackInput.addEventListener('input', async function() {
+        const parsed = parseInt(this.value, 10);
+        currentSettings.historyLookbackDays = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+        await saveSettings(false);
+      });
+    }
     
     // Range inputs
     document.getElementById('search-delay').addEventListener('input', async function() {
@@ -431,6 +447,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       'theme-select': 'theme',
       'animation-speed': 'animationSpeed',
       'max-results': 'maxResults',
+      'history-lookback-days': 'historyLookbackDays',
       'search-tabs': 'searchTabs',
       'search-bookmarks': 'searchBookmarks',
       'search-history': 'searchHistory',
@@ -595,6 +612,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     document.getElementById('search-history-label').textContent = i18nInstance.t('options.searchSettings.sources.history');
     document.getElementById('search-delay-label').textContent = i18nInstance.t('options.searchSettings.searchDelay');
     document.getElementById('search-delay-desc').textContent = i18nInstance.t('options.searchSettings.searchDelayDesc');
+    document.getElementById('history-lookback-label').textContent = i18nInstance.t('options.searchSettings.historyLookback');
+    document.getElementById('history-lookback-desc').textContent = i18nInstance.t('options.searchSettings.historyLookbackDesc');
     document.getElementById('default-search-engine-label').textContent = i18nInstance.t('options.searchSettings.defaultSearchEngine');
     document.getElementById('default-search-engine-desc').textContent = i18nInstance.t('options.searchSettings.defaultSearchEngineDesc');
     
@@ -1340,8 +1359,9 @@ document.addEventListener('DOMContentLoaded', async function() {
        // Agregar listener temporal
        chrome.runtime.onMessage.addListener(progressListener);
        
-       // Iniciar carga ULTRA
-       const response = await chrome.runtime.sendMessage({ action: 'load_ultra_cache' });
+       // Iniciar carga ULTRA (forceRebuild para reconstruir desde cero y respetar
+       // la configuración de historyLookbackDays / startTime actual)
+       const response = await chrome.runtime.sendMessage({ action: 'load_ultra_cache', forceRebuild: true });
        
        // Remover listener
        chrome.runtime.onMessage.removeListener(progressListener);
