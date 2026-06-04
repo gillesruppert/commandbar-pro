@@ -312,17 +312,7 @@ class I18n {
             actions: {
               clearCache: 'Limpiar Cache',
               clearStats: 'Limpiar Estadísticas',
-              resetAll: 'Restablecer Todo'
-            },
-            
-            statsViewer: 'Estadísticas Recopiladas',
-            statsViewerDesc: 'Visualiza las estadísticas de uso almacenadas localmente',
-            viewStats: 'Ver Estadísticas',
-            refreshStats: 'Actualizar',
-            noStats: 'No hay estadísticas disponibles',
-            statsEmpty: 'Activa la recopilación de datos para ver estadísticas',
-            
-            actions: {
+              resetAll: 'Restablecer Todo',
               open: 'Abrir',
               openInNewTab: 'Abrir en Nueva Pestaña',
               openInBackground: 'Abrir en Segundo Plano',
@@ -330,6 +320,14 @@ class I18n {
               pin: 'Pinear',
               duplicate: 'Duplicar'
             },
+
+            statsViewer: 'Estadísticas Recopiladas',
+            statsViewerDesc: 'Visualiza las estadísticas de uso almacenadas localmente',
+            viewStats: 'Ver Estadísticas',
+            refreshStats: 'Actualizar',
+            noStats: 'No hay estadísticas disponibles',
+            statsEmpty: 'Activa la recopilación de datos para ver estadísticas',
+            statsError: 'Error cargando estadísticas',
             
             // Etiquetas de estadísticas
             statsLabels: {
@@ -393,7 +391,8 @@ class I18n {
               clearingCache: 'Error limpiando cache',
               clearingStats: 'Error limpiando estadísticas',
               resettingSettings: 'Error restableciendo configuración',
-              importingSettings: 'Error importando configuración'
+              importingSettings: 'Error importando configuración',
+              changingLanguage: 'Error cambiando idioma'
             }
           },
           
@@ -410,6 +409,95 @@ class I18n {
             resetAll: {
               title: 'Restablecer Todo',
               message: '¿Estás seguro de que quieres restablecer toda la configuración? Esta acción no se puede deshacer.'
+            }
+          },
+
+          // Cache ULTRA
+          cacheUltra: {
+            title: 'Cache ULTRA',
+            statusLabel: 'Estado del Cache ULTRA',
+            statusDesc: 'Sistema de cache permanente con favicons precargados',
+            actionsLabel: 'Acciones de Cache ULTRA',
+            actionsDesc: 'Gestiona el sistema de cache avanzado',
+            configLabel: 'Configuración Avanzada',
+            configDesc: 'Ajusta el comportamiento del cache ULTRA',
+            progressLabel: 'Progreso de Carga ULTRA',
+            progressDesc: 'Procesando historial completo...',
+            topDomainsLabel: 'Dominios Más Visitados',
+            topDomainsDesc: 'Los sitios web más frecuentes en tu historial',
+            statsLabel: 'Estadísticas Detalladas',
+            statsDesc: 'Información completa del rendimiento del cache',
+            fields: {
+              state: 'Estado:',
+              urlsInCache: 'URLs en cache:',
+              uniqueDomains: 'Dominios únicos:',
+              cachedFavicons: 'Favicons cacheados:',
+              lastUpdate: 'Última actualización:',
+              memoryUsage: 'Uso de memoria:',
+              autoUpdate: 'Auto-actualización:'
+            },
+            buttons: {
+              load: 'Cargar Cache ULTRA',
+              loading: 'Cargando ULTRA...',
+              viewTopDomains: 'Ver Dominios Top',
+              stats: 'Estadísticas'
+            },
+            config: {
+              maxUrls: 'Máximo de URLs:',
+              maxFavicons: 'Máximo de Favicons:',
+              autoUpdateOnVisit: 'Auto-actualización al visitar páginas',
+              persistentCache: 'Cache persistente (sobrevive a reinicios)'
+            },
+            progress: {
+              start: 'Iniciando...',
+              complete: '✅ Carga ULTRA completada'
+            },
+            states: {
+              loading: 'Cargando...',
+              loaded: '✅ Cargado',
+              qualityFull: ' (Completo)',
+              qualityPartial: ' (Parcial)',
+              qualityMinimal: ' (Mínimo)',
+              loadedInvalid: '⚠️ Cargado (Inválido)',
+              invalidDetails: ' ({urls} URLs, {domains} dominios)',
+              notLoaded: '❌ No cargado',
+              never: 'Nunca',
+              active: '✅ Activa',
+              inactive: '❌ Inactiva',
+              activeMasc: '✅ Activo',
+              inactiveMasc: '❌ Inactivo'
+            },
+            messages: {
+              loadSuccess: '✅ Cache ULTRA cargado exitosamente',
+              loadError: '❌ Error cargando cache ULTRA',
+              clearSuccess: '✅ Cache ULTRA limpiado exitosamente',
+              clearError: '❌ Error limpiando cache ULTRA',
+              errorPrefix: '❌ Error: {error}'
+            },
+            clearConfirm: {
+              title: 'Limpiar Cache ULTRA',
+              message: '¿Estás seguro de que quieres limpiar el cache ULTRA? Esto eliminará todos los datos del historial y favicons cacheados.'
+            },
+            topDomains: {
+              loading: 'Cargando dominios...',
+              lastVisit: 'Última visita: {date}',
+              visits: '{count} visitas',
+              empty: 'No hay dominios para mostrar',
+              error: 'Error cargando dominios'
+            },
+            statsPanel: {
+              loading: 'Cargando estadísticas...',
+              error: 'Error cargando estadísticas',
+              generalTitle: '📊 Estadísticas Generales',
+              totalUrls: 'URLs totales:',
+              uniqueDomains: 'Dominios únicos:',
+              cachedFavicons: 'Favicons cacheados:',
+              memoryUsage: 'Uso de memoria:',
+              configTitle: '⚙️ Configuración',
+              maxUrls: 'Máximo URLs:',
+              maxFavicons: 'Máximo favicons:',
+              autoUpdate: 'Auto-actualización:',
+              persistentCache: 'Cache persistente:'
             }
           }
         },
@@ -749,17 +837,7 @@ class I18n {
             actions: {
               clearCache: 'Clear Cache',
               clearStats: 'Clear Statistics',
-              resetAll: 'Reset All'
-            },
-            
-            statsViewer: 'Statistics Viewer',
-            statsViewerDesc: 'View locally stored usage statistics',
-            viewStats: 'View Statistics',
-            refreshStats: 'Refresh',
-            noStats: 'No statistics available',
-            statsEmpty: 'Enable data collection to view statistics',
-            
-            actions: {
+              resetAll: 'Reset All',
               open: 'Open',
               openInNewTab: 'Open in New Tab',
               openInBackground: 'Open in Background',
@@ -767,6 +845,14 @@ class I18n {
               pin: 'Pin',
               duplicate: 'Duplicate'
             },
+
+            statsViewer: 'Statistics Viewer',
+            statsViewerDesc: 'View locally stored usage statistics',
+            viewStats: 'View Statistics',
+            refreshStats: 'Refresh',
+            noStats: 'No statistics available',
+            statsEmpty: 'Enable data collection to view statistics',
+            statsError: 'Error loading statistics',
             
             // Statistics labels
             statsLabels: {
@@ -830,7 +916,8 @@ class I18n {
               clearingCache: 'Error clearing cache',
               clearingStats: 'Error clearing statistics',
               resettingSettings: 'Error resetting settings',
-              importingSettings: 'Error importing settings'
+              importingSettings: 'Error importing settings',
+              changingLanguage: 'Error changing language'
             }
           },
           
@@ -847,6 +934,95 @@ class I18n {
             resetAll: {
               title: 'Reset All',
               message: 'Are you sure you want to reset all settings? This action cannot be undone.'
+            }
+          },
+
+          // Cache ULTRA
+          cacheUltra: {
+            title: 'ULTRA Cache',
+            statusLabel: 'ULTRA Cache Status',
+            statusDesc: 'Permanent cache system with preloaded favicons',
+            actionsLabel: 'ULTRA Cache Actions',
+            actionsDesc: 'Manage the advanced cache system',
+            configLabel: 'Advanced Configuration',
+            configDesc: 'Adjust ULTRA cache behavior',
+            progressLabel: 'ULTRA Load Progress',
+            progressDesc: 'Processing full history...',
+            topDomainsLabel: 'Most Visited Domains',
+            topDomainsDesc: 'The most frequent websites in your history',
+            statsLabel: 'Detailed Statistics',
+            statsDesc: 'Complete cache performance information',
+            fields: {
+              state: 'Status:',
+              urlsInCache: 'URLs in cache:',
+              uniqueDomains: 'Unique domains:',
+              cachedFavicons: 'Cached favicons:',
+              lastUpdate: 'Last update:',
+              memoryUsage: 'Memory usage:',
+              autoUpdate: 'Auto-update:'
+            },
+            buttons: {
+              load: 'Load ULTRA Cache',
+              loading: 'Loading ULTRA...',
+              viewTopDomains: 'View Top Domains',
+              stats: 'Statistics'
+            },
+            config: {
+              maxUrls: 'Maximum URLs:',
+              maxFavicons: 'Maximum Favicons:',
+              autoUpdateOnVisit: 'Auto-update when visiting pages',
+              persistentCache: 'Persistent cache (survives restarts)'
+            },
+            progress: {
+              start: 'Starting...',
+              complete: '✅ ULTRA load complete'
+            },
+            states: {
+              loading: 'Loading...',
+              loaded: '✅ Loaded',
+              qualityFull: ' (Full)',
+              qualityPartial: ' (Partial)',
+              qualityMinimal: ' (Minimal)',
+              loadedInvalid: '⚠️ Loaded (Invalid)',
+              invalidDetails: ' ({urls} URLs, {domains} domains)',
+              notLoaded: '❌ Not loaded',
+              never: 'Never',
+              active: '✅ Active',
+              inactive: '❌ Inactive',
+              activeMasc: '✅ Active',
+              inactiveMasc: '❌ Inactive'
+            },
+            messages: {
+              loadSuccess: '✅ ULTRA Cache loaded successfully',
+              loadError: '❌ Error loading ULTRA cache',
+              clearSuccess: '✅ ULTRA Cache cleared successfully',
+              clearError: '❌ Error clearing ULTRA cache',
+              errorPrefix: '❌ Error: {error}'
+            },
+            clearConfirm: {
+              title: 'Clear ULTRA Cache',
+              message: 'Are you sure you want to clear the ULTRA cache? This will remove all cached history data and favicons.'
+            },
+            topDomains: {
+              loading: 'Loading domains...',
+              lastVisit: 'Last visit: {date}',
+              visits: '{count} visits',
+              empty: 'No domains to display',
+              error: 'Error loading domains'
+            },
+            statsPanel: {
+              loading: 'Loading statistics...',
+              error: 'Error loading statistics',
+              generalTitle: '📊 General Statistics',
+              totalUrls: 'Total URLs:',
+              uniqueDomains: 'Unique domains:',
+              cachedFavicons: 'Cached favicons:',
+              memoryUsage: 'Memory usage:',
+              configTitle: '⚙️ Configuration',
+              maxUrls: 'Max URLs:',
+              maxFavicons: 'Max favicons:',
+              autoUpdate: 'Auto-update:',
+              persistentCache: 'Persistent cache:'
             }
           }
         },

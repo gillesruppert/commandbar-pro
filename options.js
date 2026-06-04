@@ -504,9 +504,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Forzar actualización completa de la interfaz
         setTimeout(() => {
           updateInterface();
-          
+
+          // Refrescar los valores dinámicos del estado del cache ULTRA en el nuevo idioma
+          updateUltraCacheInfo();
+
           // Sección experimental ahora está hardcodeada en inglés (no requiere actualización)
-          
+
         }, 100); // Pequeño delay para asegurar que el idioma esté completamente cargado
         
         // Notificar a todos los content scripts del cambio
@@ -531,7 +534,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         showToast(i18n.t('options.messages.languageChanged', { language: languageName }), 'success');
       } catch (error) {
         console.error('Error changing language:', error);
-        showToast('❌ Error cambiando idioma', 'error');
+        showToast(i18n.t('options.messages.errors.changingLanguage'), 'error');
       }
     }
   
@@ -678,7 +681,39 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // Sección experimental ahora tiene textos hardcodeados en inglés en el HTML
     // (ya no necesita traducciones dinámicas para evitar problemas)
-    
+
+    // Cache ULTRA
+    updateElementText('cache-management-title', 'options.cacheUltra.title', {}, i18nInstance);
+    updateElementText('cache-status-label', 'options.cacheUltra.statusLabel', {}, i18nInstance);
+    updateElementText('cache-status-desc', 'options.cacheUltra.statusDesc', {}, i18nInstance);
+    updateElementText('cache-actions-label', 'options.cacheUltra.actionsLabel', {}, i18nInstance);
+    updateElementText('cache-actions-desc', 'options.cacheUltra.actionsDesc', {}, i18nInstance);
+    updateElementText('cache-config-label', 'options.cacheUltra.configLabel', {}, i18nInstance);
+    updateElementText('cache-config-desc', 'options.cacheUltra.configDesc', {}, i18nInstance);
+    updateElementText('cache-progress-label', 'options.cacheUltra.progressLabel', {}, i18nInstance);
+    updateElementText('cache-progress-desc', 'options.cacheUltra.progressDesc', {}, i18nInstance);
+    updateElementText('top-domains-label', 'options.cacheUltra.topDomainsLabel', {}, i18nInstance);
+    updateElementText('top-domains-desc', 'options.cacheUltra.topDomainsDesc', {}, i18nInstance);
+    updateElementText('cache-stats-label', 'options.cacheUltra.statsLabel', {}, i18nInstance);
+    updateElementText('cache-stats-desc', 'options.cacheUltra.statsDesc', {}, i18nInstance);
+    // Cache ULTRA - etiquetas de campos de estado
+    updateElementText('cache-state-field-label', 'options.cacheUltra.fields.state', {}, i18nInstance);
+    updateElementText('cache-urls-field-label', 'options.cacheUltra.fields.urlsInCache', {}, i18nInstance);
+    updateElementText('cache-domains-field-label', 'options.cacheUltra.fields.uniqueDomains', {}, i18nInstance);
+    updateElementText('cache-favicons-field-label', 'options.cacheUltra.fields.cachedFavicons', {}, i18nInstance);
+    updateElementText('cache-last-update-field-label', 'options.cacheUltra.fields.lastUpdate', {}, i18nInstance);
+    updateElementText('cache-memory-field-label', 'options.cacheUltra.fields.memoryUsage', {}, i18nInstance);
+    updateElementText('cache-auto-update-field-label', 'options.cacheUltra.fields.autoUpdate', {}, i18nInstance);
+    // Cache ULTRA - botones
+    updateElementText('rebuild-cache-text', 'options.cacheUltra.buttons.load', {}, i18nInstance);
+    updateElementText('view-top-domains-text', 'options.cacheUltra.buttons.viewTopDomains', {}, i18nInstance);
+    updateElementText('cache-stats-text', 'options.cacheUltra.buttons.stats', {}, i18nInstance);
+    // Cache ULTRA - configuración avanzada
+    updateElementText('max-urls-label', 'options.cacheUltra.config.maxUrls', {}, i18nInstance);
+    updateElementText('max-favicons-label', 'options.cacheUltra.config.maxFavicons', {}, i18nInstance);
+    updateElementText('auto-update-cache-label', 'options.cacheUltra.config.autoUpdateOnVisit', {}, i18nInstance);
+    updateElementText('persistent-cache-label', 'options.cacheUltra.config.persistentCache', {}, i18nInstance);
+
     // Idioma
     updateElementText('language-title', 'options.language', {}, i18nInstance);
     updateElementText('interface-language-label', 'options.languageSettings.interfaceLanguage', {}, i18nInstance);
@@ -1050,7 +1085,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       dataDiv.innerHTML = `
         <div style="text-align: center; color: #dc3545; padding: 20px;">
           <span style="font-size: 24px;">❌</span>
-          <p>Error cargando estadísticas</p>
+          <p>${i18n.t('options.privacy.statsError')}</p>
         </div>
       `;
       loading.style.display = 'none';
@@ -1256,18 +1291,18 @@ document.addEventListener('DOMContentLoaded', async function() {
          if (stateElement) {
            if (info.isLoaded && info.integrityValid) {
              const quality = info.loadQuality || 'unknown';
-             const qualityText = quality === 'full' ? ' (Completo)' : 
-                               quality === 'partial' ? ' (Parcial)' : 
-                               quality === 'minimal' ? ' (Mínimo)' : '';
-             stateElement.textContent = `✅ Cargado${qualityText}`;
+             const qualityText = quality === 'full' ? i18n.t('options.cacheUltra.states.qualityFull') :
+                               quality === 'partial' ? i18n.t('options.cacheUltra.states.qualityPartial') :
+                               quality === 'minimal' ? i18n.t('options.cacheUltra.states.qualityMinimal') : '';
+             stateElement.textContent = `${i18n.t('options.cacheUltra.states.loaded')}${qualityText}`;
              stateElement.style.color = '#28a745';
            } else if (info.isLoaded && !info.integrityValid) {
              const integrityDetails = info.integrityDetails;
-             const details = integrityDetails ? ` (${integrityDetails.stats.historySize} URLs, ${integrityDetails.stats.domainsSize} dominios)` : '';
-             stateElement.textContent = `⚠️ Cargado (Inválido)${details}`;
+             const details = integrityDetails ? i18n.t('options.cacheUltra.states.invalidDetails', { urls: integrityDetails.stats.historySize, domains: integrityDetails.stats.domainsSize }) : '';
+             stateElement.textContent = `${i18n.t('options.cacheUltra.states.loadedInvalid')}${details}`;
              stateElement.style.color = '#ffc107';
            } else {
-             stateElement.textContent = '❌ No cargado';
+             stateElement.textContent = i18n.t('options.cacheUltra.states.notLoaded');
              stateElement.style.color = '#dc3545';
            }
          }
@@ -1300,14 +1335,14 @@ document.addEventListener('DOMContentLoaded', async function() {
              const date = new Date(info.lastUpdate);
              lastUpdateElement.textContent = date.toLocaleString();
            } else {
-             lastUpdateElement.textContent = 'Nunca';
+             lastUpdateElement.textContent = i18n.t('options.cacheUltra.states.never');
            }
          }
          
          // Actualizar auto-actualización
          const autoUpdateElement = document.getElementById('cache-auto-update');
          if (autoUpdateElement) {
-           autoUpdateElement.textContent = '✅ Activa';
+           autoUpdateElement.textContent = i18n.t('options.cacheUltra.states.active');
            autoUpdateElement.style.color = '#28a745';
          }
          
@@ -1331,7 +1366,7 @@ document.addEventListener('DOMContentLoaded', async function() {
        // Deshabilitar botón y mostrar progreso
        if (rebuildBtn) {
          rebuildBtn.disabled = true;
-         rebuildBtn.innerHTML = '<span class="button-icon">⚡</span><span>Cargando ULTRA...</span>';
+         rebuildBtn.innerHTML = `<span class="button-icon">⚡</span><span>${i18n.t('options.cacheUltra.buttons.loading')}</span>`;
        }
        
        if (progressContainer) {
@@ -1367,12 +1402,12 @@ document.addEventListener('DOMContentLoaded', async function() {
        chrome.runtime.onMessage.removeListener(progressListener);
        
        if (response.success) {
-         showToast('✅ Cache ULTRA cargado exitosamente', 'success');
-         if (progressText) progressText.textContent = '✅ Carga ULTRA completada';
+         showToast(i18n.t('options.cacheUltra.messages.loadSuccess'), 'success');
+         if (progressText) progressText.textContent = i18n.t('options.cacheUltra.progress.complete');
          if (progressFill) progressFill.style.width = '100%';
        } else {
-         showToast(`❌ Error: ${response.error}`, 'error');
-         if (progressText) progressText.textContent = `❌ Error: ${response.error}`;
+         showToast(i18n.t('options.cacheUltra.messages.errorPrefix', { error: response.error }), 'error');
+         if (progressText) progressText.textContent = i18n.t('options.cacheUltra.messages.errorPrefix', { error: response.error });
        }
        
        // Actualizar información del cache
@@ -1382,7 +1417,7 @@ document.addEventListener('DOMContentLoaded', async function() {
        setTimeout(() => {
          if (rebuildBtn) {
            rebuildBtn.disabled = false;
-           rebuildBtn.innerHTML = '<span class="button-icon">⚡</span><span id="rebuild-cache-text">Cargar Cache ULTRA</span>';
+           rebuildBtn.innerHTML = `<span class="button-icon">⚡</span><span id="rebuild-cache-text">${i18n.t('options.cacheUltra.buttons.load')}</span>`;
          }
          if (progressContainer) {
            progressContainer.style.display = 'none';
@@ -1391,31 +1426,31 @@ document.addEventListener('DOMContentLoaded', async function() {
        
      } catch (error) {
        console.error('Error cargando cache ULTRA:', error);
-       showToast('❌ Error cargando cache ULTRA', 'error');
+       showToast(i18n.t('options.cacheUltra.messages.loadError'), 'error');
      }
    }
-   
+
    // Manejar limpieza de cache ULTRA
    async function handleClearUltraCache() {
      try {
        const confirmed = await showConfirmModal(
-         'Limpiar Cache ULTRA',
-         '¿Estás seguro de que quieres limpiar el cache ULTRA? Esto eliminará todos los datos del historial y favicons cacheados.',
+         i18n.t('options.cacheUltra.clearConfirm.title'),
+         i18n.t('options.cacheUltra.clearConfirm.message'),
          async () => {
            const response = await chrome.runtime.sendMessage({ action: 'clear_ultra_cache' });
-           
+
            if (response.success) {
-             showToast('✅ Cache ULTRA limpiado exitosamente', 'success');
+             showToast(i18n.t('options.cacheUltra.messages.clearSuccess'), 'success');
              await updateUltraCacheInfo();
            } else {
-             showToast(`❌ Error: ${response.error}`, 'error');
+             showToast(i18n.t('options.cacheUltra.messages.errorPrefix', { error: response.error }), 'error');
            }
          }
        );
-       
+
      } catch (error) {
        console.error('Error limpiando cache ULTRA:', error);
-       showToast('❌ Error limpiando cache ULTRA', 'error');
+       showToast(i18n.t('options.cacheUltra.messages.clearError'), 'error');
      }
    }
    
@@ -1428,12 +1463,12 @@ document.addEventListener('DOMContentLoaded', async function() {
        if (container) container.style.display = 'block';
        
        if (list) {
-         list.innerHTML = '<div style="text-align: center; padding: 2rem; color: #6c757d;">Cargando dominios...</div>';
+         list.innerHTML = `<div style="text-align: center; padding: 2rem; color: #6c757d;">${i18n.t('options.cacheUltra.topDomains.loading')}</div>`;
        }
-       
+
        // Obtener dominios top
        const response = await chrome.runtime.sendMessage({ action: 'get_top_domains', limit: 20 });
-       
+
        if (response.success && response.domains && list) {
          const domainsHTML = response.domains.map(domain => {
            const lastVisit = new Date(domain.lastVisit).toLocaleDateString();
@@ -1441,24 +1476,24 @@ document.addEventListener('DOMContentLoaded', async function() {
              <div class="domain-item">
                <div class="domain-info">
                  <div class="domain-name">${domain.domain}</div>
-                 <div class="domain-stats">Última visita: ${lastVisit}</div>
+                 <div class="domain-stats">${i18n.t('options.cacheUltra.topDomains.lastVisit', { date: lastVisit })}</div>
                </div>
-               <div class="domain-count">${domain.count} visitas</div>
+               <div class="domain-count">${i18n.t('options.cacheUltra.topDomains.visits', { count: domain.count })}</div>
              </div>
            `;
          }).join('');
-         
-         list.innerHTML = domainsHTML || '<div style="text-align: center; padding: 2rem; color: #6c757d;">No hay dominios para mostrar</div>';
-         
+
+         list.innerHTML = domainsHTML || `<div style="text-align: center; padding: 2rem; color: #6c757d;">${i18n.t('options.cacheUltra.topDomains.empty')}</div>`;
+
        } else if (list) {
-         list.innerHTML = '<div style="text-align: center; padding: 2rem; color: #dc3545;">Error cargando dominios</div>';
+         list.innerHTML = `<div style="text-align: center; padding: 2rem; color: #dc3545;">${i18n.t('options.cacheUltra.topDomains.error')}</div>`;
        }
-       
+
      } catch (error) {
        console.error('Error cargando dominios top:', error);
        const list = document.getElementById('top-domains-list');
        if (list) {
-         list.innerHTML = '<div style="text-align: center; padding: 2rem; color: #dc3545;">Error cargando dominios</div>';
+         list.innerHTML = `<div style="text-align: center; padding: 2rem; color: #dc3545;">${i18n.t('options.cacheUltra.topDomains.error')}</div>`;
        }
      }
    }
@@ -1472,51 +1507,56 @@ document.addEventListener('DOMContentLoaded', async function() {
        if (container) container.style.display = 'block';
        
        if (content) {
-         content.innerHTML = '<div style="text-align: center; padding: 2rem; color: #6c757d;">Cargando estadísticas...</div>';
+         content.innerHTML = `<div style="text-align: center; padding: 2rem; color: #6c757d;">${i18n.t('options.cacheUltra.statsPanel.loading')}</div>`;
        }
-       
+
        // Obtener información del cache
        const response = await chrome.runtime.sendMessage({ action: 'get_ultra_cache_info' });
-       
+
        if (response.success && response.cacheInfo && content) {
          const info = response.cacheInfo;
          const config = response.config;
-         
+         const sp = (key) => i18n.t(`options.cacheUltra.statsPanel.${key}`);
+         const activeText = i18n.t('options.cacheUltra.states.active');
+         const inactiveText = i18n.t('options.cacheUltra.states.inactive');
+         const activeMasc = i18n.t('options.cacheUltra.states.activeMasc');
+         const inactiveMasc = i18n.t('options.cacheUltra.states.inactiveMasc');
+
          const statsHTML = `
            <div style="display: grid; gap: 1rem;">
              <div style="background: white; padding: 1rem; border-radius: 8px; border: 1px solid #e9ecef;">
-               <h4 style="margin: 0 0 0.5rem 0; color: #495057;">📊 Estadísticas Generales</h4>
+               <h4 style="margin: 0 0 0.5rem 0; color: #495057;">${sp('generalTitle')}</h4>
                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem;">
-                 <div><strong>URLs totales:</strong> ${info.totalUrls?.toLocaleString() || '0'}</div>
-                 <div><strong>Dominios únicos:</strong> ${info.totalDomains?.toLocaleString() || '0'}</div>
-                 <div><strong>Favicons cacheados:</strong> ${info.totalFavicons?.toLocaleString() || '0'}</div>
-                 <div><strong>Uso de memoria:</strong> ${info.memoryUsage?.toFixed(2) || '0'} MB</div>
+                 <div><strong>${sp('totalUrls')}</strong> ${info.totalUrls?.toLocaleString() || '0'}</div>
+                 <div><strong>${sp('uniqueDomains')}</strong> ${info.totalDomains?.toLocaleString() || '0'}</div>
+                 <div><strong>${sp('cachedFavicons')}</strong> ${info.totalFavicons?.toLocaleString() || '0'}</div>
+                 <div><strong>${sp('memoryUsage')}</strong> ${info.memoryUsage?.toFixed(2) || '0'} MB</div>
                </div>
              </div>
-             
+
              <div style="background: white; padding: 1rem; border-radius: 8px; border: 1px solid #e9ecef;">
-               <h4 style="margin: 0 0 0.5rem 0; color: #495057;">⚙️ Configuración</h4>
+               <h4 style="margin: 0 0 0.5rem 0; color: #495057;">${sp('configTitle')}</h4>
                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem;">
-                 <div><strong>Máximo URLs:</strong> ${config?.maxHistoryResults?.toLocaleString() || '100,000'}</div>
-                 <div><strong>Máximo favicons:</strong> ${config?.faviconCacheSize?.toLocaleString() || '1,000'}</div>
-                 <div><strong>Auto-actualización:</strong> ${config?.autoUpdate ? '✅ Activa' : '❌ Inactiva'}</div>
-                 <div><strong>Cache persistente:</strong> ${config?.persistent ? '✅ Activo' : '❌ Inactivo'}</div>
+                 <div><strong>${sp('maxUrls')}</strong> ${config?.maxHistoryResults?.toLocaleString() || '100,000'}</div>
+                 <div><strong>${sp('maxFavicons')}</strong> ${config?.faviconCacheSize?.toLocaleString() || '1,000'}</div>
+                 <div><strong>${sp('autoUpdate')}</strong> ${config?.autoUpdate ? activeText : inactiveText}</div>
+                 <div><strong>${sp('persistentCache')}</strong> ${config?.persistent ? activeMasc : inactiveMasc}</div>
                </div>
              </div>
            </div>
          `;
-         
+
          content.innerHTML = statsHTML;
-         
+
        } else if (content) {
-         content.innerHTML = '<div style="text-align: center; padding: 2rem; color: #dc3545;">Error cargando estadísticas</div>';
+         content.innerHTML = `<div style="text-align: center; padding: 2rem; color: #dc3545;">${i18n.t('options.cacheUltra.statsPanel.error')}</div>`;
        }
-       
+
      } catch (error) {
        console.error('Error cargando estadísticas del cache:', error);
        const content = document.getElementById('cache-stats-content');
        if (content) {
-         content.innerHTML = '<div style="text-align: center; padding: 2rem; color: #dc3545;">Error cargando estadísticas</div>';
+         content.innerHTML = `<div style="text-align: center; padding: 2rem; color: #dc3545;">${i18n.t('options.cacheUltra.statsPanel.error')}</div>`;
        }
      }
    } 
