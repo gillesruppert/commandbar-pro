@@ -5,11 +5,12 @@
   "description": "Advanced Command Bar for Chrome inspired by Arc Browser",
   "permissions": [
     "tabs",
-    "bookmarks", 
+    "bookmarks",
     "history",
     "storage",
     "activeTab",
-    "scripting"
+    "scripting",
+    "favicon"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -59,7 +60,7 @@
   "options_page": "options.html",
   "web_accessible_resources": [
     {
-      "resources": ["styles.css", "new_tab.html", "new_tab.js", "i18n.js", "content.js"],
+      "resources": ["styles.css", "new_tab.html", "new_tab.js", "i18n.js", "content.js", "_favicon/*"],
       "matches": ["<all_urls>"]
     }
   ]

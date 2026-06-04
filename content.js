@@ -893,16 +893,35 @@ function appendTabResults(tabs) {
   suggestions.innerHTML += html;
 }
 
+// Construir URL de favicon usando la API nativa _favicon de Chrome.
+// Es totalmente local (lee de la base de datos de favicons del navegador),
+// no hace peticiones externas y el navegador la resuelve de forma asíncrona.
+// Para sitios sin favicon conocido, Chrome devuelve un icono genérico.
+function getFaviconUrl(pageUrl, size = 32) {
+  try {
+    const faviconUrl = new URL(chrome.runtime.getURL('/_favicon/'));
+    faviconUrl.searchParams.set('pageUrl', pageUrl);
+    faviconUrl.searchParams.set('size', String(size));
+    return faviconUrl.toString();
+  } catch (e) {
+    return null;
+  }
+}
+
 // Agregar resultados de bookmarks
 function appendBookmarkResults(bookmarks) {
   const suggestions = document.getElementById('commandbar-suggestions');
   
-  let html = `<div class="commandbar-section"><div class="commandbar-section-title">${i18n.t('sections.bookmarks')}</div>`;
+  let html = `<div class="commandbar-section"><div class="commandbar-section-title">🔖 ${i18n.t('sections.bookmarks')}</div>`;
   bookmarks.slice(0, userSettings.maxResults).forEach(bookmark => {
     if (bookmark.url) {
+      const favicon = getFaviconUrl(bookmark.url);
+      const icon = favicon
+        ? `<img class="commandbar-favicon" src="${favicon}" alt="">`
+        : '<span class="commandbar-icon">🔖</span>';
       html += `
         <div class="commandbar-item" data-action="open-bookmark" data-url="${bookmark.url}">
-          <span class="commandbar-icon">🔖</span>
+          ${icon}
           <span class="commandbar-text">${bookmark.title}</span>
           <span class="commandbar-url">${new URL(bookmark.url).hostname}</span>
         </div>
@@ -918,11 +937,15 @@ function appendBookmarkResults(bookmarks) {
 function appendHistoryResults(history) {
   const suggestions = document.getElementById('commandbar-suggestions');
   
-  let html = `<div class="commandbar-section"><div class="commandbar-section-title">${i18n.t('sections.history')}</div>`;
+  let html = `<div class="commandbar-section"><div class="commandbar-section-title">📚 ${i18n.t('sections.history')}</div>`;
   history.slice(0, userSettings.maxResults).forEach(item => {
+    const favicon = getFaviconUrl(item.url);
+    const icon = favicon
+      ? `<img class="commandbar-favicon" src="${favicon}" alt="">`
+      : '<span class="commandbar-icon">📚</span>';
     html += `
       <div class="commandbar-item" data-action="open-history" data-url="${item.url}">
-        <span class="commandbar-icon">📚</span>
+        ${icon}
         <span class="commandbar-text">${item.title}</span>
         <span class="commandbar-url">${new URL(item.url).hostname}</span>
       </div>
