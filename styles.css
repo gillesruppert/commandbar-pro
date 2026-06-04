@@ -488,20 +488,12 @@
 
 /* Hint de modo edición */
 .commandbar-edit-hint {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
   background: rgba(255, 193, 7, 0.1);
-  border: 1px solid rgba(255, 193, 7, 0.3);
-  border-top: none;
-  border-radius: 0 0 8px 8px;
+  border-bottom: 1px solid rgba(255, 193, 7, 0.3);
   padding: 8px 16px;
   display: flex;
   align-items: center;
   gap: 8px;
-  backdrop-filter: blur(8px);
-  z-index: 5;
   animation: fadeInDown 0.15s ease-out;
 }
 

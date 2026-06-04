@@ -1499,8 +1499,10 @@ function showEditModeHint() {
     <span class="edit-hint-icon">✏️</span>
     <span class="edit-hint-text">${i18n.t('hints.editMode')}</span>
   `;
-  
-  header.appendChild(hintEl);
+
+  // Insertar como hermano justo debajo del header (en el flujo normal) para que
+  // empuje los resultados hacia abajo en lugar de superponerse a la primera fila.
+  header.insertAdjacentElement('afterend', hintEl);
 }
 
 // Limpiar hint de modo edición
