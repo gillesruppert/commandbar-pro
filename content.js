@@ -1753,14 +1753,20 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   }
 });
 
-// Prevenir que el sitio capture Cmd+K / Ctrl+K
-document.addEventListener('keydown', (e) => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-    e.preventDefault();
-    e.stopPropagation();
-    // No llamamos showCommandBar() aquí porque ya lo maneja el background script
-  }
-}, true);
+// Nota: aquí había un listener de keydown en fase de captura que hacía
+// preventDefault()/stopPropagation() sobre Cmd+K / Ctrl+K para «evitar que el
+// sitio capture el atajo». Se eliminó por dos motivos:
+//
+//   1. Es innecesario: Chrome despacha los comandos registrados en el manifiesto
+//      a nivel de navegador y no reenvía la pulsación a la página, así que el
+//      sitio nunca llega a recibir el atajo de la extensión.
+//   2. Era dañino: la condición solo comprobaba Ctrl/Cmd y comparaba e.key con
+//      'k'. En macOS el valor de e.key para combinaciones con Command se deriva
+//      de charactersIgnoringModifiers, por lo que Cmd+Shift+K también llegaba
+//      como 'k' y quedaba anulado. Eso rompía ese atajo en cualquier web que lo
+//      use (Google Chat, entre otras). Además el atajo estaba fijo en Cmd+K
+//      aunque el usuario puede reasignar toggle_commandbar desde
+//      chrome://extensions/shortcuts.
 
 // Función de inicialización principal
 async function initializeContentScript() {
