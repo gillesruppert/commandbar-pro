@@ -143,72 +143,19 @@ async function testCommandBar() {
         // Cerrar popup si funciona
         window.close();
       } catch (error) {
-        // Si falla, intentar inyección forzada
-        
-        try {
-          await chrome.scripting.executeScript({
-            target: { tabId: tabs[0].id },
-            func: function() {
-              // CommandBar simplificado para sitios problemáticos
-              const existingBar = document.getElementById('forced-commandbar');
-              if (existingBar) {
-                existingBar.remove();
-                return;
-              }
-              
-              const commandBar = document.createElement('div');
-              commandBar.id = 'forced-commandbar';
-                             commandBar.innerHTML = '<div style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; background: rgba(0,0,0,0.7) !important; backdrop-filter: blur(4px) !important; z-index: 999999 !important; display: flex !important; align-items: center !important; justify-content: center !important; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif !important;"><div style="background: white !important; border-radius: 12px !important; box-shadow: 0 20px 40px rgba(0,0,0,0.3) !important; width: 90% !important; max-width: 600px !important; overflow: hidden !important;"><div style="padding: 20px !important; border-bottom: 1px solid #eee !important;"><input type="text" id="forced-input" placeholder="🚀 CommandBar Pro - Escribe comando, búsqueda o URL..." style="width: 100% !important; border: none !important; outline: none !important; font-size: 18px !important; padding: 0 !important; background: transparent !important;"></div><div style="padding: 16px !important; color: #666 !important; font-size: 14px !important;"><div style="margin-bottom: 8px !important;">⚡ <strong>Funciona en cualquier sitio:</strong></div><div>• Escribe una URL para navegar</div><div>• Escribe texto para buscar en Google</div><div>• Presiona Tab para buscar en Perplexity</div><div>• Presiona Escape para cerrar</div></div></div></div>';
-              
-              document.body.appendChild(commandBar);
-              
-              const input = document.getElementById('forced-input');
-              input.focus();
-              
-              function handleKeyDown(e) {
-                if (e.key === 'Escape') {
-                  commandBar.remove();
-                  document.removeEventListener('keydown', handleKeyDown);
-                } else if (e.key === 'Enter') {
-                  const query = input.value.trim();
-                  if (query) {
-                    let url;
-                    if (query.includes('.') && !query.includes(' ')) {
-                      url = query.startsWith('http') ? query : 'https://' + query;
-                    } else {
-                      url = 'https://www.google.com/search?q=' + encodeURIComponent(query);
-                    }
-                    window.open(url, '_blank');
-                  }
-                  commandBar.remove();
-                  document.removeEventListener('keydown', handleKeyDown);
-                } else if (e.key === 'Tab') {
-                  e.preventDefault();
-                  const query = input.value.trim();
-                  if (query && !query.includes('.')) {
-                    const perplexityUrl = 'https://www.perplexity.ai/search?q=' + encodeURIComponent(query);
-                    window.open(perplexityUrl, '_blank');
-                    commandBar.remove();
-                    document.removeEventListener('keydown', handleKeyDown);
-                  }
-                }
-              }
-              
-              document.addEventListener('keydown', handleKeyDown);
-              
-              commandBar.addEventListener('click', (e) => {
-                if (e.target === commandBar) {
-                  commandBar.remove();
-                  document.removeEventListener('keydown', handleKeyDown);
-                }
-              });
-            }
-          });
-          
-          // Cerrar popup tras inyección exitosa
+        // El content script no respondió. En vez de duplicar aquí una barra inline
+        // (lo que había antes, con id 'forced-commandbar' y ya divergida de la del
+        // service worker), delegamos en background.js, que concentra allowlist,
+        // sonda de content script y fallback.
+        const response = await chrome.runtime.sendMessage({
+          action: 'force_inject_commandbar',
+          tabId: tabs[0].id
+        });
+
+        if (response?.success) {
           window.close();
-        } catch (injectionError) {
-          // Error silencioso para evitar spam en consola
+        } else {
+          showNotification('⚠️ Recarga la página o prueba en otro sitio web', 'warning');
         }
       }
     }

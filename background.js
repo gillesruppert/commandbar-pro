@@ -158,9 +158,11 @@ async function forceInjectCommandBar(tabId, action = 'toggle_commandbar', curren
         });
       } catch (error) {
         console.error('Error inyectando i18n.js:', error.message);
+        return false;
       }
 
-      // PASO 2: Inyectar styles.css
+      // PASO 2: Inyectar styles.css (no es crítico: sin CSS la barra se ve mal,
+      // pero funciona, así que no aborta la inyección)
       try {
         await chrome.scripting.insertCSS({
           target: { tabId: tabId },
@@ -178,16 +180,25 @@ async function forceInjectCommandBar(tabId, action = 'toggle_commandbar', curren
         });
       } catch (error) {
         console.error('Error inyectando content.js:', error.message);
+        return false;
+      }
+
+      // Dar tiempo a que los scripts se inicialicen y confirmar que la API existe
+      await new Promise(resolve => setTimeout(resolve, 300));
+      if (!(await isCommandBarLoaded(tabId))) {
+        console.error('content.js inyectado pero showCommandBar no está disponible');
+        return false;
       }
     }
 
-    // PASO 4: Esperar un momento y activar CommandBar
-    setTimeout(async () => {
-      try {
-        await chrome.scripting.executeScript({
+    // PASO 4: Activar CommandBar. Se espera el resultado (antes era un setTimeout
+    // sin await, así que la función devolvía true pasara lo que pasara y los
+    // fallbacks `if (!forced)` de los llamantes eran inalcanzables).
+    try {
+      const [activation] = await chrome.scripting.executeScript({
           target: { tabId: tabId },
           func: function(action, currentUrl) {
-            
+
             // Verificar que las funciones del CommandBar estén disponibles
             if (typeof showCommandBar === 'function') {
               
@@ -351,17 +362,20 @@ async function forceInjectCommandBar(tabId, action = 'toggle_commandbar', curren
                 }
               });
             }
+
+            // Todas las ramas acaban mostrando algo
+            return true;
           },
           args: [action, currentUrl]
-        });
-        
-      } catch (activationError) {
-        console.error('Error activando CommandBar tras inyección:', activationError);
-      }
-    }, 300); // Dar tiempo para que los scripts se inicialicen
-    
-    return true;
-    
+      });
+
+      return activation?.result === true;
+
+    } catch (activationError) {
+      console.error('Error activando CommandBar tras inyección:', activationError);
+      return false;
+    }
+
   } catch (error) {
     console.error('Error en inyección forzada:', error);
     return false;
@@ -418,23 +432,15 @@ chrome.commands.onCommand.addListener(async (command) => {
           const forced = await forceInjectCommandBar(tabs[0].id, 'edit_current_url', tabs[0].url);
           
           if (!forced) {
-            // Fallback: prompt nativo
-            const currentUrl = tabs[0].url;
+            // Aquí había un fallback con prompt(). prompt() NO existe en un service
+            // worker, así que lanzaba ReferenceError; y el catch de alrededor volvía
+            // a llamar a prompt(), fallando otra vez. En páginas donde no podemos
+            // inyectar no hay forma de editar la URL in-page: se abre el popup, igual
+            // que en toggle_commandbar.
             try {
-              const url = new URL(currentUrl);
-              const cleanUrl = url.hostname.replace('www.', '') + (url.pathname !== '/' ? url.pathname : '') + url.search;
-              
-              const newUrl = prompt(`Editar URL actual:\n\n${cleanUrl}\n\nIntroduce la nueva URL:`);
-              if (newUrl) {
-                const finalUrl = newUrl.startsWith('http') ? newUrl : `https://${newUrl}`;
-                chrome.tabs.update(tabs[0].id, { url: finalUrl });
-              }
-            } catch (e) {
-              const newUrl = prompt('Introduce nueva URL:');
-              if (newUrl) {
-                const finalUrl = newUrl.startsWith('http') ? newUrl : `https://${newUrl}`;
-                chrome.tabs.update(tabs[0].id, { url: finalUrl });
-              }
+              await chrome.action.openPopup();
+            } catch (popupError) {
+              console.warn('No se pudo abrir el popup para editar la URL:', popupError.message);
             }
           }
         }
@@ -639,20 +645,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'clear_global_cache':
       clearGlobalCache().then(sendResponse);
       return true;
-      
-    case 'request_commandbar_open':
-      // Solicitud directa desde nuestra página de extensión
-      if (sender.tab?.id) {
-        setTimeout(async () => {
-          try {
-            await chrome.tabs.sendMessage(sender.tab.id, { action: 'toggle_commandbar' });
-          } catch (error) {
-            await forceInjectCommandBar(sender.tab.id, 'toggle_commandbar');
-          }
-        }, 100);
-      }
-      sendResponse({ success: true });
+
+    case 'force_inject_commandbar':
+      // Lo usa popup.js cuando el content script no responde. La acción concreta
+      // viaja en commandAction, no en action, porque este switch ya usa action.
+      forceInjectCommandBar(
+        message.tabId,
+        message.commandAction || 'toggle_commandbar',
+        message.currentUrl || null
+      ).then((ok) => sendResponse({ success: ok }));
       return true;
+
+
   }
 });
 

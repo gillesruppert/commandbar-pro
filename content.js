@@ -202,23 +202,11 @@ function setupEventListeners() {
 
   // Suggestion clicks
   suggestions.addEventListener('click', handleSuggestionClick);
-  
-  // Listener para mensajes del background script
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === 'toggle_devtools') {
-      // Alternar herramientas de desarrollador usando F12
-      const event = new KeyboardEvent('keydown', {
-        key: 'F12',
-        code: 'F12',
-        keyCode: 123,
-        which: 123,
-        bubbles: true,
-        cancelable: true
-      });
-      document.dispatchEvent(event);
-      sendResponse({ success: true });
-    }
-  });
+
+  // Nota: aquí se registraba un chrome.runtime.onMessage para 'toggle_devtools'.
+  // Como setupEventListeners() se ejecuta en cada createCommandBar(), se acumulaba
+  // un listener nuevo cada vez que se recreaba la barra. Ahora vive en el listener
+  // único del final del fichero.
 }
 
 // Constantes de configuración del cache híbrido
@@ -938,22 +926,7 @@ async function copyTextToClipboard(text) {
   return false;
 }
 
-// Listener dedicado para copiar la URL actual (síncrono: devuelve true para
-// mantener abierto el canal y responder de forma asíncrona, evitando que el
-// service worker active su copia de respaldo).
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === 'copy_current_url') {
-    const url = message.url || window.location.href;
-    copyTextToClipboard(url).then((copied) => {
-      showToast(
-        copied ? i18n.t('notifications.urlCopied') : i18n.t('notifications.urlCopyError'),
-        copied ? 'success' : 'error'
-      );
-      sendResponse({ success: copied });
-    });
-    return true; // mantener el canal abierto para la respuesta asíncrona
-  }
-});
+// Nota: 'copy_current_url' se atiende en el listener único del final del fichero.
 
 // Construir URL de favicon usando la API nativa _favicon de Chrome.
 // Es totalmente local (lee de la base de datos de favicons del navegador),
@@ -1684,81 +1657,136 @@ function showIntegratedSuggestions(favicon, title, url) {
   }
 }
 
-// Escuchar mensajes del background script
-chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+// Aplicar cambios de configuración. Se llama SIN await desde el listener de
+// mensajes: la respuesta debe salir de inmediato (ver nota en el listener).
+async function applySettingsUpdate(message) {
+  // Actualizar configuración local
+  if (message.settings) {
+    if (message.settings.defaultSearchEngine !== undefined) {
+      userSettings.defaultSearchEngine = message.settings.defaultSearchEngine;
+    }
+    if (message.settings.customSearchEngineName !== undefined) {
+      userSettings.customSearchEngineName = message.settings.customSearchEngineName;
+    }
+    if (message.settings.customSearchEngineUrl !== undefined) {
+      userSettings.customSearchEngineUrl = message.settings.customSearchEngineUrl;
+    }
+    if (message.settings.searchTabs !== undefined) {
+      userSettings.searchTabs = message.settings.searchTabs;
+    }
+    if (message.settings.searchBookmarks !== undefined) {
+      userSettings.searchBookmarks = message.settings.searchBookmarks;
+    }
+    if (message.settings.searchHistory !== undefined) {
+      userSettings.searchHistory = message.settings.searchHistory;
+    }
+    if (message.settings.maxResults !== undefined) {
+      userSettings.maxResults = message.settings.maxResults;
+    }
+    if (message.settings.searchDelay !== undefined) {
+      userSettings.searchDelay = message.settings.searchDelay;
+    }
+  }
   
-  if (message.action === 'toggle_commandbar') {
-    toggleCommandBar();
-  } else if (message.action === 'edit_current_url') {
-    // Convertir URL completa a formato simple para edición
-    let cleanUrl = message.currentUrl;
-    try {
-      const url = new URL(cleanUrl);
-      // Mostrar dominio + path si no es la raíz
-      cleanUrl = url.hostname.replace('www.', '') + (url.pathname !== '/' ? url.pathname : '') + url.search;
-    } catch (e) {
-      // Si no es una URL válida, usar como está
-    }
-    showCommandBar(cleanUrl);
-  } else if (message.action === 'settings_updated') {
-    // Actualizar configuración local
-    if (message.settings) {
-      if (message.settings.defaultSearchEngine !== undefined) {
-        userSettings.defaultSearchEngine = message.settings.defaultSearchEngine;
-      }
-      if (message.settings.customSearchEngineName !== undefined) {
-        userSettings.customSearchEngineName = message.settings.customSearchEngineName;
-      }
-      if (message.settings.customSearchEngineUrl !== undefined) {
-        userSettings.customSearchEngineUrl = message.settings.customSearchEngineUrl;
-      }
-      if (message.settings.searchTabs !== undefined) {
-        userSettings.searchTabs = message.settings.searchTabs;
-      }
-      if (message.settings.searchBookmarks !== undefined) {
-        userSettings.searchBookmarks = message.settings.searchBookmarks;
-      }
-      if (message.settings.searchHistory !== undefined) {
-        userSettings.searchHistory = message.settings.searchHistory;
-      }
-      if (message.settings.maxResults !== undefined) {
-        userSettings.maxResults = message.settings.maxResults;
-      }
-      if (message.settings.searchDelay !== undefined) {
-        userSettings.searchDelay = message.settings.searchDelay;
-      }
-    }
+  // Actualizar configuración del idioma
+  if (message.settings && message.settings.language) {
+    await i18n.setLanguage(message.settings.language);
     
-    // Actualizar configuración del idioma
-    if (message.settings && message.settings.language) {
-      await i18n.setLanguage(message.settings.language);
+    // Si CommandBar está visible, actualizarlo
+    if (isCommandBarVisible) {
+      const input = document.getElementById('commandbar-input');
+      const currentValue = input ? input.value : '';
       
-      // Si CommandBar está visible, actualizarlo
-      if (isCommandBarVisible) {
-        const input = document.getElementById('commandbar-input');
-        const currentValue = input ? input.value : '';
-        
-        // Recrear CommandBar con nuevo idioma
-        if (commandBarContainer) {
-          commandBarContainer.remove();
-          commandBarContainer = null;
-        }
-        
-        createCommandBar();
-        showCommandBar();
-        
-        // Restaurar valor del input si había algo
-        if (currentValue && input) {
-          setTimeout(() => {
-            const newInput = document.getElementById('commandbar-input');
-            if (newInput) {
-              newInput.value = currentValue;
-              newInput.focus();
-            }
-          }, 50);
-        }
+      // Recrear CommandBar con nuevo idioma
+      if (commandBarContainer) {
+        commandBarContainer.remove();
+        commandBarContainer = null;
+      }
+      
+      createCommandBar();
+      showCommandBar();
+      
+      // Restaurar valor del input si había algo
+      if (currentValue && input) {
+        setTimeout(() => {
+          const newInput = document.getElementById('commandbar-input');
+          if (newInput) {
+            newInput.value = currentValue;
+            newInput.focus();
+          }
+        }, 50);
       }
     }
+  }
+}
+
+// Listener ÚNICO de mensajes del background script.
+//
+// Antes había tres listeners repartidos por el fichero y el que atendía
+// toggle_commandbar / edit_current_url no llamaba nunca a sendResponse (además de
+// ser `async`, cuya promesa Chrome ignora: sólo `return true` mantiene el canal).
+// Resultado: `await chrome.tabs.sendMessage(...)` en background.js rechazaba con
+// "The message port closed before a response was received", el service worker lo
+// interpretaba como "no hay content script" y lanzaba forceInjectCommandBar, cuyo
+// PASO 4 volvía a llamar a showCommandBar() 300 ms después. Es decir, cada Cmd+K
+// abría la barra dos veces y no había forma de cerrarla con el atajo.
+//
+// REGLA: toda acción atendida aquí DEBE responder, sea con éxito o con error.
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  switch (message?.action) {
+    case 'toggle_commandbar':
+      toggleCommandBar();
+      sendResponse({ success: true });
+      return false;
+
+    case 'edit_current_url': {
+      // Convertir URL completa a formato simple para edición
+      let cleanUrl = message.currentUrl;
+      try {
+        const url = new URL(cleanUrl);
+        // Mostrar dominio + path si no es la raíz
+        cleanUrl = url.hostname.replace('www.', '') + (url.pathname !== '/' ? url.pathname : '') + url.search;
+      } catch (e) {
+        // Si no es una URL válida, usar como está
+      }
+      showCommandBar(cleanUrl);
+      sendResponse({ success: true });
+      return false;
+    }
+
+    case 'toggle_devtools': {
+      // Alternar herramientas de desarrollador usando F12
+      document.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'F12',
+        code: 'F12',
+        keyCode: 123,
+        which: 123,
+        bubbles: true,
+        cancelable: true
+      }));
+      sendResponse({ success: true });
+      return false;
+    }
+
+    case 'copy_current_url':
+      copyTextToClipboard(message.url || window.location.href).then((copied) => {
+        showToast(
+          copied ? i18n.t('notifications.urlCopied') : i18n.t('notifications.urlCopyError'),
+          copied ? 'success' : 'error'
+        );
+        sendResponse({ success: copied });
+      });
+      return true; // mantener el canal abierto para la respuesta asíncrona
+
+    case 'settings_updated':
+      // El trabajo real es asíncrono (i18n.setLanguage), pero no hay nada que
+      // devolver: se responde ya y se deja correr.
+      applySettingsUpdate(message);
+      sendResponse({ success: true });
+      return false;
+
+    default:
+      return false;
   }
 });
 
