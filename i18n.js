@@ -1,4 +1,15 @@
 // Sistema de internacionalización para CommandBar Pro
+//
+// GUARDIA DE REENTRADA: este fichero se evalúa como content script del manifiesto,
+// como <script> de new_tab.html y, en algunos casos, vía chrome.scripting. Una
+// segunda evaluación en el mismo contexto aborta con
+//   Uncaught SyntaxError: Identifier 'I18n' has already been declared
+// y como es un error de parseo se lleva por delante el fichero entero. Envolverlo
+// hace que la recarga sea un no-op. El cuerpo NO se reindenta a propósito: así el
+// diff y `git blame` siguen siendo legibles.
+if (!globalThis.__commandBarProI18nLoaded) {
+globalThis.__commandBarProI18nLoaded = true;
+
 class I18n {
   constructor() {
     this.currentLanguage = 'es'; // Por defecto español
@@ -1135,4 +1146,10 @@ const i18n = new I18n();
 // Para uso en otros archivos
 if (typeof window !== 'undefined') {
   window.i18n = i18n;
-} 
+}
+
+// Exponer en el global del contexto: dentro de la guardia, `const i18n` queda
+// limitado al bloque, así que sin esto el identificador suelto `i18n` no resolvería.
+globalThis.i18n = i18n;
+
+} // fin de la guardia de reentrada

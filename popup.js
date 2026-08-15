@@ -130,10 +130,9 @@ async function testCommandBar() {
     if (tabs[0]) {
       const url = tabs[0].url;
       
-      // Verificar si es una URL válida para content scripts
-      if (url.startsWith('chrome://') || url.startsWith('chrome-extension://') || 
-          url.startsWith('edge://') || url.startsWith('about:') ||
-          url.includes('chrome.google.com/webstore')) {
+      // Verificar si es una URL válida para content scripts (misma allowlist que
+      // usa background.js, ver url-utils.js)
+      if (!isInjectableUrl(url)) {
         showNotification('⚠️ CommandBar no funciona en páginas del navegador. Prueba en cualquier sitio web.', 'warning');
         return;
       }

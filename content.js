@@ -1,4 +1,13 @@
 // Content Script para CommandBar Pro
+//
+// GUARDIA DE REENTRADA: ver la nota equivalente en i18n.js. Sin ella, una segunda
+// evaluación aborta con
+//   Uncaught SyntaxError: Identifier 'commandBarContainer' has already been declared
+// y, cuando no aborta, duplica los tres chrome.runtime.onMessage de este fichero.
+// El cuerpo NO se reindenta a propósito, para no romper el diff ni `git blame`.
+if (!globalThis.__commandBarProContentLoaded) {
+globalThis.__commandBarProContentLoaded = true;
+
 let commandBarContainer = null;
 let isCommandBarVisible = false;
 let editMode = false; // Modo edición de URL actual
@@ -1805,10 +1814,19 @@ async function initializeContentScript() {
   }
 }
 
+// API que consumen new_tab.js y los chrome.scripting.executeScript de background.js
+// (isCommandBarLoaded y el PASO 4 comprueban `typeof showCommandBar === 'function'`).
+// Hay que exponerla explícitamente: dentro de la guardia las declaraciones dejan de
+// ser globales de primer nivel.
+globalThis.showCommandBar = showCommandBar;
+globalThis.toggleCommandBar = toggleCommandBar;
+
 // Inicializar cuando el DOM esté listo
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initializeContentScript);
 } else {
   // Usar setTimeout para evitar errores de timing
   setTimeout(initializeContentScript, 0);
-} 
+}
+
+} // fin de la guardia de reentrada 

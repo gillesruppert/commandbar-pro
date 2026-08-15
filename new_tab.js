@@ -198,11 +198,23 @@ function handleCommand(command) {
 // Event listeners cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
   createParticles();
-  
-  // Auto-trigger del CommandBar después de un delay para permitir que content.js se cargue
-  setTimeout(() => {
-    openFullCommandBar();
-  }, 1000);
+
+  // Auto-trigger del CommandBar SOLO si esta carga viene del auto-open (background.js
+  // añade ?autoOpen=1 al crear la pestaña). Antes se abría en CADA carga de
+  // new_tab.html, así que una pestaña restaurada o descartada mostraba la barra
+  // ~1-2s después de activarla, sin que nadie la pidiera.
+  const autoOpenRequested = new URLSearchParams(location.search).get('autoOpen') === '1';
+
+  if (autoOpenRequested) {
+    // Consumir el parámetro: si se quedara en la URL, recargar la pestaña o
+    // restaurarla en la siguiente sesión volvería a abrir la barra sola.
+    history.replaceState(null, '', location.pathname);
+
+    // Delay para permitir que content.js se cargue
+    setTimeout(() => {
+      openFullCommandBar();
+    }, 1000);
+  }
 });
 
 // Listener para mensajes desde background script

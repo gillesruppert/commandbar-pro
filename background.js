@@ -1,4 +1,8 @@
 // Service Worker para CommandBar Pro
+
+// isInjectableUrl(), compartida con popup.js
+importScripts('url-utils.js');
+
 chrome.runtime.onInstalled.addListener((details) => {
   // Abrir página de opciones al instalar
   if (details.reason === 'install') {
@@ -101,69 +105,82 @@ async function trackUsage(action, details = {}) {
   }
 }
 
+// Comprobar si content.js ya está vivo en el mundo aislado de la pestaña.
+// Reinyectar los mismos ficheros provoca "Identifier 'X' has already been declared"
+// (SyntaxError que aborta el script entero) y duplica los listeners de mensajes.
+async function isCommandBarLoaded(tabId) {
+  try {
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      func: () => typeof showCommandBar === 'function' || typeof toggleCommandBar === 'function'
+    });
+    return !!result?.result;
+  } catch (error) {
+    return false; // No accesible: se intentará la inyección normal
+  }
+}
+
 // Función para inyección forzada en sitios problemáticos
 async function forceInjectCommandBar(tabId, action = 'toggle_commandbar', currentUrl = null) {
   try {
 
     // Verificar que la pestaña sea accesible
     const tab = await chrome.tabs.get(tabId);
-    const url = tab.url || '';
 
     // NUEVA LÓGICA: Permitir inyección en nuestras páginas de extensión
-    const isOurExtensionPage = url?.includes(chrome.runtime.id) && url?.includes('new_tab.html');
-
     // Si es nuestra página, no necesita inyección - es auto-suficiente
-    if (isOurExtensionPage) {
+    // (recién creada aún no tiene url: el destino está en pendingUrl)
+    if (isOurNewTabPage(tab.url || tab.pendingUrl)) {
       return true; // Reportar éxito ya que la página se maneja sola
     }
 
-    // Allowlist: sólo inyectar en páginas http(s) o file. Cualquier otro esquema
-    // (chrome://, chrome-extension://, edge://, devtools://, about:, view-source:,
-    // chrome-search://, chrome-untrusted://, o tab.url indefinido) es inaccesible.
-    const isInjectable = url.startsWith('http://') ||
-                         url.startsWith('https://') ||
-                         url.startsWith('file://');
-    if (!isInjectable) {
+    // Para decidir si inyectar usamos SÓLO la url ya confirmada, nunca pendingUrl.
+    if (!isInjectableUrl(tab.url)) {
       return false;
     }
 
-    // Bloquear orígenes especiales donde Chrome rechaza la inyección aunque sean https
-    if (url.startsWith('https://chromewebstore.google.com/') ||
-        url.startsWith('https://chrome.google.com/webstore')) {
-      return false;
+    // PASO 0: No reinyectar si el content script ya está cargado (evita SyntaxError
+    // por redeclaración y listeners duplicados)
+    if (!(await isCommandBarLoaded(tabId))) {
+
+      // Si la pestaña sigue cargando, content.js llegará solo por la inyección
+      // declarativa del manifiesto. Adelantarnos provoca redeclaraciones
+      // ("Identifier ... has already been declared") y barras no solicitadas.
+      if (tab.status !== 'complete') {
+        return false;
+      }
+
+      // PASO 1: Inyectar i18n.js primero
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tabId },
+          files: ['i18n.js']
+        });
+      } catch (error) {
+        console.error('Error inyectando i18n.js:', error.message);
+      }
+
+      // PASO 2: Inyectar styles.css
+      try {
+        await chrome.scripting.insertCSS({
+          target: { tabId: tabId },
+          files: ['styles.css']
+        });
+      } catch (error) {
+        console.error('Error inyectando styles.css:', error.message);
+      }
+
+      // PASO 3: Inyectar content.js completo
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tabId },
+          files: ['content.js']
+        });
+      } catch (error) {
+        console.error('Error inyectando content.js:', error.message);
+      }
     }
-    
-    
-    // PASO 1: Inyectar i18n.js primero
-    try {
-      await chrome.scripting.executeScript({
-        target: { tabId: tabId },
-        files: ['i18n.js']
-      });
-    } catch (error) {
-      console.error('Error inyectando i18n.js:', error.message);
-    }
-    
-    // PASO 2: Inyectar styles.css
-    try {
-      await chrome.scripting.insertCSS({
-        target: { tabId: tabId },
-        files: ['styles.css']
-      });
-    } catch (error) {
-      console.error('Error inyectando styles.css:', error.message);
-    }
-    
-    // PASO 3: Inyectar content.js completo
-    try {
-      await chrome.scripting.executeScript({
-        target: { tabId: tabId },
-        files: ['content.js']
-      });
-    } catch (error) {
-      console.error('Error inyectando content.js:', error.message);
-    }
-    
+
     // PASO 4: Esperar un momento y activar CommandBar
     setTimeout(async () => {
       try {
@@ -369,9 +386,16 @@ chrome.commands.onCommand.addListener(async (command) => {
         } catch (error) {
           // Segundo intento: inyección forzada
           const forced = await forceInjectCommandBar(tabs[0].id, 'toggle_commandbar');
-          
+
           if (!forced) {
-            chrome.action.openPopup();
+            // Último recurso: el popup de la action. Chrome lo rechaza en algunos
+            // contextos (ventana sin foco, popup ya abierto...), así que no dejamos
+            // la promesa sin manejar.
+            try {
+              await chrome.action.openPopup();
+            } catch (popupError) {
+              console.warn('No se pudo abrir el popup en esta página:', popupError.message);
+            }
           }
         }
       }
@@ -1647,9 +1671,14 @@ let extensionCreatedTabs = new Set();
 // Set para trackear pestañas creadas por CommandBar para navegación (evitar auto-open innecesario)
 let commandBarCreatedTabs = new Set();
 
+// Función para verificar si una URL es nuestra propia página de nueva pestaña
+function isOurNewTabPage(url) {
+  return !!url && url.includes(chrome.runtime.id) && url.includes('new_tab.html');
+}
+
 // Función para verificar si es una pestaña nueva vacía válida
 function isValidNewTab(tab) {
-  
+
   // URLs que consideramos "nuevas pestañas vacías"
   const newTabUrls = [
     'chrome://newtab/',
@@ -1659,9 +1688,21 @@ function isValidNewTab(tab) {
     'edge://newtab/'
   ];
   
+  // IMPORTANTE: una pestaña recién creada todavía no tiene url; su destino real
+  // está en pendingUrl. Sin esta comprobación, CUALQUIER pestaña nueva (abrir un
+  // enlace en pestaña nueva, etc.) pasaba por "pestaña nueva vacía" y acababa
+  // abriendo el CommandBar sobre la página que se estaba cargando.
+  const pendingUrl = tab.pendingUrl || '';
+  const pendingIsRealSite = pendingUrl &&
+                            !newTabUrls.some(url => pendingUrl.startsWith(url)) &&
+                            !isOurNewTabPage(pendingUrl);
+  if (pendingIsRealSite) {
+    return false;
+  }
+
   // NUEVA LÓGICA: También considerar nuestras páginas de extensión como válidas
-  const isOurExtensionPage = tab.url?.includes(chrome.runtime.id) && tab.url?.includes('new_tab.html');
-  
+  const isOurExtensionPage = isOurNewTabPage(tab.url);
+
   // Verificar si es una URL válida de nueva pestaña
   const isNewTabUrl = newTabUrls.some(url => tab.url?.startsWith(url)) || !tab.url || tab.url === '' || isOurExtensionPage;
   
@@ -1706,10 +1747,10 @@ async function autoOpenCommandBarInNewTab(tabId, delay = 100) {
         if (!currentTab || !currentTab.active || !isValidNewTab(currentTab)) {
           return;
         }
-        
+
         
         // OPTIMIZACIÓN: Si es nuestra página de extensión, usar lógica simplificada
-        const isOurExtensionPage = currentTab.url?.includes(chrome.runtime.id) && currentTab.url?.includes('new_tab.html');
+        const isOurExtensionPage = isOurNewTabPage(currentTab.url);
         
         if (isOurExtensionPage) {
           return; // No hacer nada, la página se maneja a sí misma
@@ -1724,11 +1765,15 @@ async function autoOpenCommandBarInNewTab(tabId, delay = 100) {
           
           // MÉTODO ALTERNATIVO: Crear nueva pestaña con página de la extensión
           try {
-            // Usar página HTML de la extensión en lugar de about:blank
-            const extensionUrl = chrome.runtime.getURL('new_tab.html');
-            const newTab = await chrome.tabs.create({ 
-              url: extensionUrl, 
-              active: true 
+            // Usar página HTML de la extensión en lugar de about:blank.
+            // El parámetro autoOpen indica a new_tab.js que ESTA carga concreta viene
+            // del auto-open y debe abrir el CommandBar. Va en la URL, no en un Set
+            // compartido, porque la página puede llegar a DOMContentLoaded antes de
+            // que chrome.tabs.create() resuelva y podamos registrar su id.
+            const extensionUrl = chrome.runtime.getURL('new_tab.html') + '?autoOpen=1';
+            const newTab = await chrome.tabs.create({
+              url: extensionUrl,
+              active: true
             });
             
             // IMPORTANTE: Marcar esta pestaña como creada por nosotros para evitar bucle
@@ -1737,39 +1782,14 @@ async function autoOpenCommandBarInNewTab(tabId, delay = 100) {
             // Cerrar la pestaña chrome:// original
             await chrome.tabs.remove(tabId);
             
-            // Esperar un momento para que la página de extensión cargue
-            setTimeout(async () => {
-              try {
-                await chrome.tabs.sendMessage(newTab.id, { action: 'toggle_commandbar' });
-              } catch (error) {
-                console.error('❌ Content script aún no disponible, intentando inyección...');
-                const injected = await forceInjectCommandBar(newTab.id, 'toggle_commandbar');
-                if (injected) {
-                  // Éxito silencioso
-                } else {
-                  console.error('❌ Inyección también falló en página de extensión - Esto es muy raro, reintentando...');
-                  
-                  // Último recurso: Esperar más tiempo y reintentar
-                  setTimeout(async () => {
-                    try {
-                      const finalInjected = await forceInjectCommandBar(newTab.id, 'toggle_commandbar');
-                      if (finalInjected) {
-                        // Éxito silencioso en reintento
-                      } else {
-                        console.error('❌ Todos los intentos fallaron para página de extensión');
-                      }
-                    } catch (finalError) {
-                      console.error('❌ Error en reintento final:', finalError);
-                    }
-                  }, 1000);
-                }
-                
-                // Limpiar marca después de un tiempo
-                setTimeout(() => {
-                  extensionCreatedTabs.delete(newTab.id);
-                }, 5000);
-              }
-            }, 50); // Tiempo reducido para transición más rápida
+            // new_tab.html se abre el CommandBar solo (ver new_tab.js), así que no
+            // hace falta mensajearla: hacerlo sólo provocaba errores de "receiving end
+            // does not exist" mientras carga, o cerraba la barra recién abierta.
+
+            // Limpiar marca después de un tiempo
+            setTimeout(() => {
+              extensionCreatedTabs.delete(newTab.id);
+            }, 5000);
             
           } catch (error) {
             console.error('❌ Error creando pestaña de extensión alternativa:', error);
@@ -1781,12 +1801,10 @@ async function autoOpenCommandBarInNewTab(tabId, delay = 100) {
             await chrome.tabs.sendMessage(tabId, { action: 'toggle_commandbar' });
           } catch (error) {
             // Si falla el content script, intentar inyección forzada
-            console.error('❌ Content script falló, intentando inyección forzada:', error.message);
             const injected = await forceInjectCommandBar(tabId, 'toggle_commandbar');
-            if (injected) {
-              // Éxito silencioso
-            } else {
-              console.error('❌ Inyección forzada también falló');
+            if (!injected && isInjectableUrl(currentTab.url)) {
+              // Sólo es un fallo real si la página admitía inyección
+              console.error('❌ Inyección forzada falló en', currentTab.url);
             }
           }
         }
@@ -1798,7 +1816,11 @@ async function autoOpenCommandBarInNewTab(tabId, delay = 100) {
     }, delay);
     
   } catch (error) {
-    console.error('❌ Error verificando nueva pestaña:', error);
+    // La pestaña puede haber desaparecido entre onCreated y este punto (cierre
+    // rápido, reemplazo de pestaña por Chrome...). No es un error real.
+    if (!/No tab with id/.test(error?.message ?? '')) {
+      console.error('❌ Error verificando nueva pestaña:', error);
+    }
   }
 }
 
@@ -1806,8 +1828,10 @@ async function autoOpenCommandBarInNewTab(tabId, delay = 100) {
 chrome.tabs.onCreated.addListener(async (tab) => {
   try {
     
-    // PREVENIR BUCLE: Si esta pestaña fue creada por nosotros, saltear auto-open
-    if (extensionCreatedTabs.has(tab.id)) {
+    // PREVENIR BUCLE: Si esta pestaña fue creada por nosotros, saltear auto-open.
+    // onCreated se dispara ANTES de que chrome.tabs.create() resuelva, así que el id
+    // puede no estar aún en extensionCreatedTabs: comprobar también la URL pendiente.
+    if (extensionCreatedTabs.has(tab.id) || isOurNewTabPage(tab.pendingUrl || tab.url)) {
       return;
     }
     
